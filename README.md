@@ -1,6 +1,7 @@
 # Losing at Monopoly Junior
 
 ![Monopoly Board](/box.jpg)
+
 Simulating Monopoly Junior to find out why I keep losing
 
 ## Background
