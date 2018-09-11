@@ -1,0 +1,56 @@
+- square: Go
+- square: Dance Party
+  cost: 1
+  colour: brown
+- square: Movie Party
+  cost: 1
+  colour: brown
+- square: Chance
+- square: Swimming Party
+  cost: 1
+  colour: light blue
+- square: Bouncy Castle Party
+  cost: 1
+  colour: light blue
+- square: Jail
+- square: Bowling Party
+  cost: 2
+  colour: pink
+- square: Ice-Skating Party
+  cost: 2
+  colour: pink
+- square: Party Box
+- square: Pizza Party
+  cost: 2
+  colour: orange
+- square: Piñata Party
+  cost: 2
+  colour: orange
+- square: Free Parking
+- square: Clown Party
+  cost: 3
+  colour: red
+- square: Magic Party
+  cost: 3
+  colour: red
+- square: Chance
+- square: Pirate Party
+  cost: 3
+  colour: yellow
+- square: Princess Party
+  cost: 3
+  colour: yellow
+- square: Go to Jail
+- square: Spooky Party
+  cost: 4
+  colour: green
+- square: Safari Party
+  cost: 4
+  colour: green
+- square: Party Box
+- square: Beach Party
+  cost: 5
+  colour: dark blue
+- square: Theme Park Party
+  cost: 5
+  colour: dark blue

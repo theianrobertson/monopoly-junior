@@ -1,0 +1,31 @@
+- type: goto-and-get
+  colour: brown
+- type: goto-and-get
+  colour: light blue
+- type: goto-and-get
+  colour: pink
+- type: goto-and-get
+  colour: orange
+- type: goto-and-get
+  colour: red
+- type: goto-and-get
+  colour: yellow
+- type: goto-and-get
+  colour: green
+- type: goto-and-get
+  colour: dark blue
+- type: goto
+  square: Go
+- type: pay-into-party-box
+  amount: 1
+- type: pay-into-party-box
+  amount: 1
+- type: pay-into-party-box
+  amount: 1
+- type: pay-into-party-box
+  amount: 2
+- type: pay-into-party-box
+  amount: 3
+- type: pay-into-party-box
+  amount: 3
+- type: get-out-of-jail-free
