@@ -1,3 +1,4 @@
+import argparse
 from collections import Counter
 from itertools import cycle
 import logging
@@ -77,6 +78,7 @@ class Game:
         self.players = players
         self.party_box_balance = 0
         self.chance_cards = shuffle_chance_cards()
+        self.moves = []
 
     @property
     def owned_squares(self):
@@ -99,6 +101,7 @@ class Game:
             #Add salary for passing go
             player.add_money(GO_SALARY)
         new_square = SQUARES[new_square_index % 24]
+        self.moves[-1] += '|{} --> {}'.format(player.name, new_square['square'])
         LOG.debug('Player {} moving to square {}'.format(player.name, new_square['square']))
         player.current_square = new_square_index % 24
 
@@ -115,9 +118,11 @@ class Game:
 
         #Now it should be a party square that's not owned or owned by someone else.
         elif new_square['square'] not in self.owned_squares:
+            self.moves[-1] += ' bought!'
             player.buy_square(new_square['square'], new_square['cost'])
         else:
             to_pay = self.who_owns(new_square['square'])
+            self.moves[-1] += ' paid {}!'.format(to_pay.name)
             player.add_money(-new_square['cost'])
             to_pay.add_money(new_square['cost'])
 
@@ -125,6 +130,7 @@ class Game:
         """Do a chance card action.  Note, the "go to and get" action will choose the first square
         on the board both to buy when there are two available, and to pay."""
         chance_card = self.draw_chance_card()
+        self.moves[-1] += '|{}'.format(chance_card)
         LOG.debug('Player {} drew chance type {}'.format(player.name, chance_card['type']))
         if chance_card['type'] == 'goto-and-get':
             colour_squares = [sq for sq in SQUARES if sq.get('colour') == chance_card['colour']]
@@ -134,13 +140,17 @@ class Game:
                 colour_squares, self_owned, unowned))
             if unowned:
                 #Just buy the first one
+                self.moves[-1] += ' bought {}'.format(unowned[0]['square'])
                 player.buy_square(unowned[0]['square'], cost=0)
+                player.current_square = unowned[0]['index']
             else:
                 if self_owned:
                     #Just go to your first one
+                    self.moves[-1] += ' goto {}'.format(self_owned[0]['square'])
                     player.current_square = self_owned[0]['index']
                 else:
                     #Just go to the first one
+                    self.moves[-1] += ' goto {}'.format(colour_squares[0]['square'])
                     new_square = colour_squares[0]
                     player.current_square = new_square['index']
                     to_pay = self.who_owns(new_square['square'])
@@ -160,6 +170,7 @@ class Game:
     def take_turn(self, player):
         """Roll the die and take the turn"""
         roll = die_roll()
+        self.moves.append('{} rolled {}'.format(player.name, roll))
         LOG.debug('Player {} rolled a {}'.format(player.name, roll))
         if roll == 'chance':
             self.chance(player)
@@ -172,32 +183,57 @@ class Game:
                 self.take_turn(player)
             except ValueError:
                 LOG.debug("Player {} is bankrupt!".format(player.name))
-                return self.get_winners(), turn_count + 1
+                LOG.debug("Player(s) {} won!".format(','.join(self.get_winners())))
+                self.turn_count = turn_count + 1
+                return
 
     def get_winners(self):
         top_score = max([player.total_money for player in self.players])
         top_scorers = [player.name for player in self.players if player.total_money == top_score]
-        LOG.info("Player(s) {} won the game with {} dollars!".format(
+        LOG.debug("Player(s) {} won the game with {} dollars!".format(
             ', '.join(top_scorers), top_score))
         return top_scorers
 
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-        number_of_iterations = int(sys.argv[1])
-    else:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-        number_of_iterations = 1
-
+def run_iterations(number_of_iterations, number_of_players, seed=None):
+    random.seed(seed or 12345)
+    games = []
     winners = Counter()
     game_lengths = Counter()
     for i in range(number_of_iterations):
-        LOG.info('Playing game {} of {}'.format(i + 1, number_of_iterations))
-        player_1 = Player('Son', STARTING_MONEY[2], set())
-        player_2 = Player('Dad', STARTING_MONEY[2], set())
-        game = Game([player_1, player_2])
-        winner, game_length = game.play()
-        winners[winner[0]] += 1
-        game_lengths[game_length] += 1
-    LOG.info('Total wins: {}'.format(winners))
-    LOG.info('Game length distribution: {}'.format(game_lengths))
+        if i % 1000 == 0:
+            LOG.info('Playing game {} of {}'.format(i + 1, number_of_iterations))
+        if number_of_players == 2:
+            players = [Player('son', STARTING_MONEY[2], set()), Player('dad', STARTING_MONEY[2], set())]
+        else:
+            players = [
+                Player(str(i + 1), STARTING_MONEY[number_of_players], set())
+                for i in range(number_of_players)]
+        game = Game(players)
+        game.play()
+        games.append(game)
+        for player in game.get_winners():
+            winners[player] += 1
+        game_lengths[game.turn_count] += 1
+    print('Total wins: {}'.format(winners))
+    for player, wins in winners.items():
+        print('Player {0} won {1:.2f}% of games'.format(player, wins / number_of_iterations * 100))
+    print('Game Lengths:')
+    print('\n'.join(['{},{}'.format(k, v) for k, v in game_lengths.items()]))
+    return winners, game_lengths, games
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--seed", help="Random seed", type=int)
+    parser.add_argument("-p", "--players", help="number of players", type=int)
+    parser.add_argument("-i", "--iterations", help="number of iterations", type=int)
+    args = parser.parse_args()
+    number_of_iterations = args.iterations or 1
+    if number_of_iterations > 1:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    number_of_players = args.players or 2
+    if number_of_players not in (2, 3, 4):
+        raise ValueError('Only supports 2-4 players!')
+    run_iterations(number_of_iterations, number_of_players, args.seed)
